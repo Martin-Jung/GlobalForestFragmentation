@@ -21,15 +21,15 @@ from metrics import calcMetrics
 ##################
 #------------------
 ##################
-m = "Euclidean Nearest-Neighbor Distance"
+m = "Patch density"
 # Other Parameter
 spacing = 10
 y = 2015
 print "Processing the year " + str(y)
 # Set working dir
-os.chdir("/lustre/scratch/lifesci/mj291/Global_Landcover/ALOS_PALSAR/%s/" % (str(y)) )
+os.chdir("ALOS_PALSAR/%s/" % (str(y)) )
 
-output = "/lustre/scratch/lifesci/mj291/%s_%s_%s/" % (m.replace(" ","_"),str(y),str(spacing) )
+output = "%s_%s_%s/" % (m.replace(" ","_"),str(y),str(spacing) )
 if path.exists(output) == False:
     print "Creating folder: " + output
     os.mkdir(output)

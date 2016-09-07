@@ -91,6 +91,8 @@ class calcMetrics():
             return unicode(name), self.f_returnPatchArea(self.cl_array,self.labeled_array,self.numpatches,"median")
         elif(name == unicode("Euclidean Nearest-Neighbor Distance")):
             return unicode(name), self.f_returnAvgPatchDist(self.labeled_array,self.numpatches,metric = "euclidean")
+        elif(name == unicode("Average Edge distance")):
+            return unicode(name), self.f_AverageEdgeWithinPatch(self.cl_array,self.labeled_array,self.numpatches)            
         elif(name == unicode("Largest Patch Index")):
             return unicode(name), self.f_returnLargestPatchIndex(self.cl_array,self.labeled_array,self.numpatches)
         elif(name == unicode("Mean patch perimeter")):
@@ -416,6 +418,22 @@ class calcMetrics():
     def f_returnPosLargestPatch(self,labeled_array):
         return numpy.unravel_index(labeled_array.argmax(),labeled_array.shape)
     
+    # Calculate average within patches distances to non-class edge
+    # Thus an index of within patch distance to edge
+    def f_AverageEdgeWithinPatch(self,array,labeled_array,numpatches):
+        """
+        Use an euclidean distance transformation to get the average distance 
+        between all non-zero patches
+        """
+        edt, inds = ndimage.distance_transform_edt(array, return_indices=True)
+        # Set all non-patch values to nan
+        edt[edt==0] = numpy.nan
+        # Multiply all distance values with the cellsize
+        edt = edt * self.cellsize
+        # Calculate means of labeled patches 
+        edt2 = ndimage.mean(edt,labeled_array,range(1,numpatches+1))
+        return numpy.mean(edt2)
+    
     # Get average distance between landscape patches
     def f_returnAvgPatchDist(self,labeled_array,numpatches,metric = "euclidean"):
         if numpatches == 0:
@@ -431,18 +449,18 @@ class calcMetrics():
             I, J = numpy.nonzero(labeled_array)
             labels = labeled_array[I,J]
             coords = numpy.column_stack((I,J))
-        
+            # Sort them accordingly
             sorter = numpy.argsort(labels)
             labels = labels[sorter]
             coords = coords[sorter]
-        
+
             sq_dists = cdist(coords, coords, 'sqeuclidean')
-        
+            # TODO: DOES not work if matrix of pairwise comparisons does not fit into ram
             start_idx = numpy.flatnonzero(numpy.r_[1, numpy.diff(labels)])            
             nonzero_vs_feat = numpy.minimum.reduceat(sq_dists, start_idx, axis=1)
             feat_vs_feat = numpy.minimum.reduceat(nonzero_vs_feat, start_idx, axis=0)
         
-            # Get lower triangle and zero distances to nan
+            # # Get lower triangle and zero distances to nan
             b = numpy.tril( numpy.sqrt( feat_vs_feat ) )
             b[b == 0 ] = numpy.nan
             res = numpy.nanmean(b) * self.cellsize # Calculate mean and multiply with cellsize
@@ -528,19 +546,24 @@ class calcMetrics():
     def testing_def(self):
         #Teststuff
         pass
-#         rasterPath = "/home/martin/Projekte/Bialowieza_TestData/fc.tif" 
-#         srcImage = gdal.Open(str(rasterPath))
-#         array = srcImage.GetRasterBand(1).ReadAsArray() # Convert first band to array
-#         cl_array = numpy.copy(array)
-#         cl_array[array!=1] = 0
-#         s = ndimage.generate_binary_structure(2,2)
-#         labeled_array, numpatches = ndimage.label(cl_array,s)
-#         (upper_left_x, x_size, x_rotation, upper_left_y, y_rotation, y_size) = srcImage.GetGeoTransform()
-#         
-#         import matplotlib.pyplot as plt
-#         plt.imshow(cl_array,interpolation='nearest')
-#         plt.axis('on')
-#         plt.show()
+#        rasterPath = "C:\Users\Martin\PhD\Projects\PX_GlobalLandscapeFragmentation\GlobalForestFragmentation\Code\metrics_test2.tif" 
+#        srcImage = gdal.Open(str(rasterPath))
+#        array = srcImage.GetRasterBand(1).ReadAsArray() # Convert first band to array
+#        cl_array = numpy.copy(array)
+#        cl_array[array!=12] = 0
+#        s = ndimage.generate_binary_structure(2,2)
+#        labeled_array, numpatches = ndimage.label(cl_array,s)
+#        (upper_left_x, x_size, x_rotation, upper_left_y, y_rotation, y_size) = srcImage.GetGeoTransform()
+#        
+#        import matplotlib.pyplot as plt
+#        plt.imshow(cl_array,interpolation='nearest')
+#        edt, inds = ndimage.distance_transform_edt(cl_array, return_indices=True)
+#        plt.imshow(edt,interpolation='nearest')
+#
+#        edt[edt==0] = numpy.nan
+#        edt2 = ndimage.mean(edt,labeled_array,range(1,numpatches+1))
+#        numpy.mean(edt2)
+#
 # 
 # 
 #         import numpy
